@@ -1,0 +1,108 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: todo-app
+
+# Reference base configuration
+resources:
+  - ../../base
+
+# Minikube-specific labels
+commonLabels:
+  environment: minikube
+  tier: local
+
+# Minikube-specific patches
+patches:
+  # Update image tags to match locally built images
+  - path: image-patch.yaml
+
+  # Single replica for local development
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: backend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: frontend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: ai-agent
+
+  # Use NodePort for frontend service
+  - patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30080
+    target:
+      kind: Service
+      name: frontend
+
+  # Reduce resource limits for Minikube
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+    target:
+      kind: Deployment
+      name: backend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "25m"
+            memory: "32Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+    target:
+      kind: Deployment
+      name: frontend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "25m"
+            memory: "32Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+    target:
+      kind: Deployment
+      name: ai-agent
+
+# ConfigMap patches for Minikube (using strategic merge patch instead of generator)
+patchesStrategicMerge:
+  - |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: todo-config
+      namespace: todo-app
+    data:
+      LOG_LEVEL: "debug"
+      NODE_ENV: "development"
+      FRONTEND_URL: "http://localhost:30080"
+      BACKEND_URL: "http://backend:4000"

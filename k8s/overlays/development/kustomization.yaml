@@ -1,0 +1,71 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: todo-app
+
+resources:
+  - ../../base
+
+# Development-specific labels
+commonLabels:
+  environment: development
+
+# Development-specific patches
+patches:
+  # Reduce replicas for development
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: backend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: frontend
+
+  # Reduce resource limits for development
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "250m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "256Mi"
+    target:
+      kind: Deployment
+      name: backend
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "100m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "128Mi"
+    target:
+      kind: Deployment
+      name: frontend
+
+# Development-specific ConfigMap values
+configMapGenerator:
+  - name: todo-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - AGENT_INTERVAL_MS=60000
+
+# Development images (local registry)
+images:
+  - name: todo-backend
+    newName: todo-backend
+    newTag: dev
+  - name: todo-frontend
+    newName: todo-frontend
+    newTag: dev
+  - name: todo-ai-agent
+    newName: todo-ai-agent
+    newTag: dev
