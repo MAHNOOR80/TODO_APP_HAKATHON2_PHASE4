@@ -1,4 +1,4 @@
-# Frontend Dockerfile - Vite/React (SPA) with API Link
+# Frontend Dockerfile - Variable Name Fixed
 # Phase 4: Cloud-Native Kubernetes Deployment
 
 # ============================================
@@ -12,22 +12,23 @@ RUN npm ci
 
 COPY . .
 
-# --- CRITICAL: Accept API URL during build ---
-ARG VITE_API_BASE_URL
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-# ---------------------------------------------
+# --- CRITICAL FIX: MATCH VARIABLE NAME TO CODE ---
+# Old: VITE_API_BASE_URL (Wrong)
+# New: VITE_API_URL (Correct - Matches api.ts)
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+# -----------------------------------------------
 
 RUN npm run build
 
 # ============================================
-# Stage 2: Production Runner (Nginx)
+# Stage 2: Production Runner
 # ============================================
 FROM nginx:alpine AS runner
 
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Custom Nginx config for React Router
 RUN echo 'server { \
     listen 80; \
     server_name localhost; \
