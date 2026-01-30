@@ -85,3 +85,11 @@ backend/build/
 # yarn.lock
 
 node_modules/
+
+# Kubernetes secrets
+k8s/secrets/*.yaml
+!k8s/secrets/*.example
+*.secret.yaml
+kubeconfig*
+*.key
+*.crt

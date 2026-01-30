@@ -123,21 +123,22 @@ setup_namespace() {
     fi
 }
 
-# Deploy to Kubernetes
+# Deploy to Kubernetes using Helm
 deploy() {
-    echo -e "\n${BLUE}Deploying to Kubernetes...${NC}"
+    echo -e "\n${BLUE}Deploying to Kubernetes with Helm...${NC}"
 
     cd "${PROJECT_ROOT}"
 
-    # Check if secrets exist before deploying
-    if ! kubectl get secret todo-secrets -n ${NAMESPACE} &> /dev/null; then
-        print_error "Secrets not found. Please create secrets first."
-        exit 1
+    # Check if Helm release already exists
+    if helm status todo-app --namespace ${NAMESPACE} &> /dev/null; then
+        echo "Upgrading existing Helm release..."
+        helm upgrade todo-app k8s/helm/todo-app --namespace ${NAMESPACE} --wait --timeout 5m
+        print_status "Helm release upgraded"
+    else
+        echo "Installing new Helm release..."
+        helm install todo-app k8s/helm/todo-app --namespace ${NAMESPACE} --create-namespace --wait --timeout 5m
+        print_status "Helm release installed"
     fi
-
-    # Apply Kustomize overlay
-    kubectl apply -k k8s/overlays/minikube
-    print_status "Kubernetes manifests applied"
 }
 
 # Wait for pods to be ready
@@ -164,7 +165,7 @@ print_access_info() {
     echo -e "  View logs:      kubectl logs -f deployment/backend -n ${NAMESPACE}"
     echo -e "  Port forward:   kubectl port-forward service/frontend 3000:3000 -n ${NAMESPACE}"
     echo -e "  Scale backend:  kubectl scale deployment/backend --replicas=3 -n ${NAMESPACE}"
-    echo -e "  Delete all:     kubectl delete -k k8s/overlays/minikube"
+    echo -e "  Delete all:     helm uninstall todo-app -n ${NAMESPACE}"
 }
 
 # Main execution

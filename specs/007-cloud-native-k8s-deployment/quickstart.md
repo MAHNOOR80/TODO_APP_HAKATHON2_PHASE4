@@ -113,14 +113,14 @@ kubectl create secret generic todo-secrets \
   -n todo-app
 ```
 
-### 3. Deploy to Cluster
+### 3. Deploy to Cluster (Helm)
 
 ```bash
-# Development environment
-kubectl apply -k k8s/overlays/development
+# Install with Helm
+helm install todo-app k8s/helm/todo-app --namespace todo-app --create-namespace
 
-# Production environment
-kubectl apply -k k8s/overlays/production
+# Or upgrade an existing release
+helm upgrade todo-app k8s/helm/todo-app --namespace todo-app
 
 # Verify deployment
 kubectl get pods -n todo-app

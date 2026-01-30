@@ -159,23 +159,24 @@ function Set-NamespaceAndSecrets {
     }
 }
 
-# Deploy to Kubernetes
+# Deploy to Kubernetes using Helm
 function Deploy-ToKubernetes {
-    Write-Host "`nDeploying to Kubernetes..." -ForegroundColor Blue
+    Write-Host "`nDeploying to Kubernetes with Helm..." -ForegroundColor Blue
 
     Push-Location $PROJECT_ROOT
 
     try {
-        # Check if secrets exist
-        $secret = kubectl get secret todo-secrets -n $NAMESPACE 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Secrets not found. Please create secrets first."
-            exit 1
+        # Check if Helm release already exists
+        $release = helm status todo-app --namespace $NAMESPACE 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Upgrading existing Helm release..."
+            helm upgrade todo-app k8s/helm/todo-app --namespace $NAMESPACE --wait --timeout 5m0s
+            Write-Status "Helm release upgraded"
+        } else {
+            Write-Host "Installing new Helm release..."
+            helm install todo-app k8s/helm/todo-app --namespace $NAMESPACE --create-namespace --wait --timeout 5m0s
+            Write-Status "Helm release installed"
         }
-
-        # Apply Kustomize overlay
-        kubectl apply -k k8s/overlays/minikube
-        Write-Status "Kubernetes manifests applied"
     }
     finally {
         Pop-Location
@@ -205,7 +206,7 @@ function Show-AccessInfo {
     Write-Host "  View logs:      kubectl logs -f deployment/backend -n $NAMESPACE"
     Write-Host "  Port forward:   kubectl port-forward service/frontend 3000:3000 -n $NAMESPACE"
     Write-Host "  Scale backend:  kubectl scale deployment/backend --replicas=3 -n $NAMESPACE"
-    Write-Host "  Delete all:     kubectl delete -k k8s/overlays/minikube"
+    Write-Host "  Delete all:     helm uninstall todo-app -n $NAMESPACE"
 }
 
 # Main execution
